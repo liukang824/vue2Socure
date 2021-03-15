@@ -6,6 +6,6 @@ export function initMixin(Vue) {
     const vm = this  // vue 中使用this.$options 指代表就是用传递的属性
     vm.$options = options 
     //  初始化状态
-    initState(vm)
+    initState(vm)  //分割代码
   }
 } 
