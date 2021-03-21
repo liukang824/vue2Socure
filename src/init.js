@@ -30,14 +30,15 @@ export function initMixin(Vue) {
       if (!template && el) {
         template = el.outerHTML;
       }
-      const render = compileToFunction(template)
+      const render = compileToFunction(template);
       //我们需要将template转成render 方法 2.0  虚拟dom
       // 把render  方法放到options
       options.render = render
       // console.log(template);
-      // 挂在当前组件 
-      mountComponent(vm,el)
+     
+    
     }
-
+     // 挂在当前组件 
+    mountComponent(vm,el)
   }
 } 

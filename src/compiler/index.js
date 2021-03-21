@@ -15,7 +15,7 @@ console.log(template);
     //  _c("div",{id:app},_c("p",undefined,_v('hello' + _s(name) )),_v('hello')) 
     // 所有的模板引擎实现 都需要new Function + with
 
-    let renderFn = new Function(`with(this){return ${code}}`)
+    let renderFn = new Function(`with(this){ return ${code}}`); 
   // return function render(){
 
   // }
@@ -33,7 +33,7 @@ function generate(el) {
 function genChildren(el){
   let children = el.children 
   if(children && children.length >0){
-    return `${children.map(c=>gen(c).join(','))}`
+    return `${children.map(c=>gen(c)).join(',')}`
   }else{
     return false
   }
@@ -73,16 +73,44 @@ function genProps(attrs){
     if(attr.name == 'style'){
          // style="color: red;fontSize:14px" => {style:{color:'red'},id:name,}
       let obj = {}
-      attr.value.forEach(item => {
-        let [key,value] = item.split(';')
-        obj[key] = value
-
-      });
+       attr.value.split(';').forEach(item=>{
+                let [key,value] = item.split(':');
+                obj[key] = value
+            });
     }
-    str+=`${attr.name}:${JSON.stringify(attr.value)}`
+    str+=`${attr.name}:${JSON.stringify(attr.value)},`
+
     
     
   }
-  return str;
+  return `{${str.slice(0,-1)}}`;
 
 }
+// ast语法树 是用对象来描述原生语法的   虚拟dom 用对象来描述dom节点的
+// ?: 匹配不捕获
+// argumens[0] = 匹配到的标签  arguments[1] 匹配到的标签名字
+
+
+//   hellpo
+//      <p></p>
+// </div>
+
+
+// let root = {
+//     tag:'div',
+//     attrs:[{name:'id',value:'app'}],
+//     parent:null,
+//     type:1,
+//     children:[{
+//         tag:'p',
+//         attrs:[],
+//         parent:root,
+//         type:1,
+//         children:[
+//             {
+//                 text:'hello',
+//                 type:3
+//             }
+//         ]
+//     }]
+// }

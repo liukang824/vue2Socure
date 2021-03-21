@@ -33,7 +33,8 @@ export function initState(vm) {
     // 为了让用户更好的使用 我希望可以直接vm.xxx
     // 做一个取值代理
     for(let key in data){
-      proxy(vm,'__data',key )
+      // console.log(key,data);
+      proxy(vm,'_data',key )
     }
 
     observe(data)

@@ -37,14 +37,14 @@ function end(tagName) {
   let element = stack.pop() //拿到的是ast对象
   //我要表示当前这个p属于这个div 的儿子
   currentParent = stack[stack.length - 1]
-  if (currentParen) {
+  if (currentParent) {
     element.parent = currentParent
     currentParent.children.push(element)  //实现了一个树的父子关系
   }
 
 }
 function chars(text) {
-  text = text.RegExp(/\s/g, '')  //去掉所有空字符串
+  text = text.replace(/\s/g, '')  //去掉所有空字符串
   if (text) {
     currentParent.children.push({
       text,
