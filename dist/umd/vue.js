@@ -458,7 +458,7 @@
         lastIndex = index + match[0].length;
       }
 
-      if (index < lastIndex) {
+      if (lastIndex < text.length) {
         tokens.push(JSON.stringify(text.split(lastIndex)));
       }
 
@@ -473,14 +473,19 @@
     for (var i = 0; i < attrs.length; i++) {
       var attr = attrs[i];
 
-      if (attr.name == 'style') {
+      if (attr.name === 'style') {
         (function () {
+          // style="color: red;fontSize:14px" => {style:{color:'red'},id:name,}
+          var obj = {};
           attr.value.split(';').forEach(function (item) {
             var _item$split = item.split(':'),
-                _item$split2 = _slicedToArray(_item$split, 2);
-                _item$split2[0];
-                _item$split2[1];
+                _item$split2 = _slicedToArray(_item$split, 2),
+                key = _item$split2[0],
+                value = _item$split2[1];
+
+            obj[key] = value;
           });
+          attr.value = obj;
         })();
       }
 
@@ -513,6 +518,19 @@
   //     }]
   // }
 
+  // class Watcher {
+  //   constructor(vm,exprOrFn,callback,options){
+  //     this.vm = vm 
+  //     this.callback = callback  
+  //     this.options = options 
+  //     this.getter = exprOrFn
+  //     this.get()
+  //   }
+  //   get(){
+  //     this.getter()
+  //   }
+  // }
+  // export default Watcher
   var Watcher = /*#__PURE__*/function () {
     function Watcher(vm, exprOrFn, callback, options) {
       _classCallCheck(this, Watcher);
@@ -520,7 +538,8 @@
       this.vm = vm;
       this.callback = callback;
       this.options = options;
-      this.getter = exprOrFn;
+      this.getter = exprOrFn; // 将内部传过来的回调函数 放到getter属性上
+
       this.get();
     }
 
@@ -562,7 +581,7 @@
       vnode.el = document.createElement(tag);
       updateProperties(vnode);
       children.forEach(function (child) {
-        // / 递归创建儿子节点，将儿子节点扔到父节点中
+        // 递归创建儿子节点，将儿子节点扔到父节点中
         return vnode.el.appendChild(createElm(child));
       });
     } else {
@@ -583,7 +602,7 @@
         for (var styleName in newProps.style) {
           el.style[styleName] = newProps.style[styleName];
         }
-      } else if (key === "class") {
+      } else if (key === 'class') {
         el.className = newProps["class"];
       } else {
         el.setAttribute(key, newProps[key]);
@@ -617,16 +636,19 @@
     new Watcher(vm, updataComponent, function () {}, true); //true  表示是一个渲染过程 
   }
 
+  // import { initState } from './state'
+
   function initMixin(Vue) {
+    // 初始化流程
     Vue.prototype._init = function (options) {
-      // 数据劫持 
-      var vm = this; // vue 中使用this.$options 指代表就是用传递的属性
+      // 数据的劫持
+      var vm = this; // vue中使用 this.$options 指代的就是用户传递的属性
 
-      vm.$options = options; //  初始化状态
+      vm.$options = options; // 初始化状态
 
-      initState(vm); //分割代码
-      // 如果有用户传入了el 属性 需要将页面渲染出来
-      // 如果用户传入了el 就要实现挂在流程
+      initState(vm); // 分割代码
+      // 如果用户传入了el属性 需要将页面渲染出来
+      // 如果用户传入了el 就要实现挂载流程
 
       if (vm.$options.el) {
         vm.$mount(vm.$options.el);
@@ -634,23 +656,23 @@
     };
 
     Vue.prototype.$mount = function (el) {
-      //1 保存this
       var vm = this;
       var options = vm.$options;
-      el = document.querySelector(el); //  默认会先查找有没有render 方法 再去查找有没有 template  最后查找 el  
+      el = document.querySelector(el); // 默认先会查找有没有render方法，没有render 会 采用template template也没有就用el中的内容
 
       if (!options.render) {
-        var template = options.template;
+        // 对模板进行编译
+        var template = options.template; // 取出模板
 
         if (!template && el) {
           template = el.outerHTML;
         }
 
-        var render = compileToFunction(template); //我们需要将template转成render 方法 2.0  虚拟dom
-        // 把render  方法放到options
+        var render = compileToFunction(template);
+        options.render = render; // 我们需要将template 转化成render方法 vue1.0 2.0虚拟dom 
 
-        options.render = render; // console.log(template);
-      } // 挂在当前组件 
+        console.log(render);
+      } // 渲染当前的组件 挂载这个组件
 
 
       mountComponent(vm, el);

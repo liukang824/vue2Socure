@@ -56,7 +56,7 @@ function gen(node){
             lastIndex = index+match[0].length
 
     }
-    if(index < lastIndex){
+    if(lastIndex < text.length){
       tokens.push(JSON.stringify(text.split(lastIndex)))
     }
 
@@ -70,16 +70,16 @@ function genProps(attrs){
   let str = ''
   for (let i = 0; i < attrs.length; i++) {
     let attr = attrs[i]
-    if(attr.name == 'style'){
+    if(attr.name === 'style'){
          // style="color: red;fontSize:14px" => {style:{color:'red'},id:name,}
       let obj = {}
        attr.value.split(';').forEach(item=>{
                 let [key,value] = item.split(':');
                 obj[key] = value
             });
+      attr.value = obj;
     }
-    str+=`${attr.name}:${JSON.stringify(attr.value)},`
-
+    str+= `${attr.name}:${JSON.stringify(attr.value)},`
     
     
   }
