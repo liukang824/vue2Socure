@@ -21,7 +21,6 @@ export function renderMixin(Vue){
     const vm = this
     const {render} = vm.$options
     let vnode = render.call(vm)  //去实例上取值
-    console.log(vnode);
     return vnode;
   }
 

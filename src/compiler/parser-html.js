@@ -7,7 +7,10 @@ const startTagClose = /^\s*(\/?)>/; // 匹配标签结束的 >  <div>
 const defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g
 
 
-let root = null; //ast 语法树的根
+
+
+export function parseHTML(html) {
+  let root = null; //ast 语法树的根
 let currentParent; //识别当前父亲是谁
 let stack = [];
 const ELEMENT_TYPE = 1;
@@ -52,8 +55,6 @@ function chars(text) {
     })
   }
 }
-
-export function parseHTML(html) {
   // 不停的去截取html字符串
   while (html) {
     let textEnd = html.indexOf('<')

@@ -42,6 +42,55 @@
     return Constructor;
   }
 
+  function _defineProperty(obj, key, value) {
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value: value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      obj[key] = value;
+    }
+
+    return obj;
+  }
+
+  function ownKeys(object, enumerableOnly) {
+    var keys = Object.keys(object);
+
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      if (enumerableOnly) symbols = symbols.filter(function (sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      });
+      keys.push.apply(keys, symbols);
+    }
+
+    return keys;
+  }
+
+  function _objectSpread2(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i] != null ? arguments[i] : {};
+
+      if (i % 2) {
+        ownKeys(Object(source), true).forEach(function (key) {
+          _defineProperty(target, key, source[key]);
+        });
+      } else if (Object.getOwnPropertyDescriptors) {
+        Object.defineProperties(target, Object.getOwnPropertyDescriptors(source));
+      } else {
+        ownKeys(Object(source)).forEach(function (key) {
+          Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+        });
+      }
+    }
+
+    return target;
+  }
+
   function _slicedToArray(arr, i) {
     return _arrayWithHoles(arr) || _iterableToArrayLimit(arr, i) || _unsupportedIterableToArray(arr, i) || _nonIterableRest();
   }
@@ -119,6 +168,55 @@
         vm[source][key] = newVlaue;
       }
     });
+  }
+  var LIFECYCLE_HOOKS = ['beforeCreate', 'created', 'beforeMount', 'mounted', 'beforeUpdate', 'updated', 'beforeDestroy', 'destroyed'];
+  var strats = {};
+
+  function mergeHook(parentVal, childVal) {
+    if (childVal) {
+      if (parentVal) {
+        return parentVal.concat(childVal);
+      } else {
+        return [childVal];
+      }
+    } else {
+      return parentVal;
+    }
+  }
+
+  LIFECYCLE_HOOKS.forEach(function (hook) {
+    strats[hook] = mergeHook;
+  });
+  function mergeOptions(parent, child) {
+    var options = {};
+
+    for (var key in parent) {
+      mergeField(key);
+    }
+
+    for (var _key in child) {
+      if (!parent.hasOwnProperty(_key)) {
+        //如果已经和平过了 就不需要合并了
+        mergeField(_key);
+      }
+    } // 默认的合并策略 但是有些属性 需要有特殊的合并方式 生命周期的合并
+
+
+    function mergeField(key) {
+      if (strats[key]) {
+        return options[key] = strats[key](parent[key], child[key]);
+      }
+
+      if (_typeof(parent[key]) === 'object' && _typeof(child[key]) === 'object') {
+        options[key] = _objectSpread2(_objectSpread2({}, parent[key]), child[key]);
+      } else if (child[key] === null) {
+        options[key] = parent[key];
+      } else {
+        options[key] = child[key];
+      }
+    }
+
+    return options;
   }
 
   // 会对数组本身发生变化的一些方法  push shift  unshift pop reverse  sort  splice 
@@ -204,6 +302,8 @@
   function defineReactive(data, key, value) {
     observe(value);
     Object.defineProperty(data, key, {
+      configurable: true,
+      enumerable: true,
       get: function get() {
         return value;
       },
@@ -268,62 +368,62 @@
   var attribute = /^\s*([^\s"'<>\/=]+)(?:\s*(=)\s*(?:"([^"]*)"+|'([^']*)'+|([^\s"'=<>`]+)))?/; // 匹配属性的
 
   var startTagClose = /^\s*(\/?)>/; // 匹配标签结束的 >  <div>
-  var root = null; //ast 语法树的根
-
-  var currentParent; //识别当前父亲是谁
-
-  var stack = [];
-  var ELEMENT_TYPE = 1;
-  var TEXT_TYPE = 3;
-
-  function createASTElement(tagName, attrs) {
-    return {
-      tag: tagName,
-      type: ELEMENT_TYPE,
-      children: [],
-      attrs: attrs,
-      parent: null
-    };
-  } // 开始标签
-
-
-  function start(tagName, attrs) {
-    var element = createASTElement(tagName, attrs);
-
-    if (!root) {
-      root = element;
-    } // 把当前元素标记成父ast
-
-
-    currentParent = element;
-    stack.push(element); //把标签存放在栈里
-  }
-
-  function end(tagName) {
-    var element = stack.pop(); //拿到的是ast对象
-    //我要表示当前这个p属于这个div 的儿子
-
-    currentParent = stack[stack.length - 1];
-
-    if (currentParent) {
-      element.parent = currentParent;
-      currentParent.children.push(element); //实现了一个树的父子关系
-    }
-  }
-
-  function chars(text) {
-    text = text.replace(/\s/g, ''); //去掉所有空字符串
-
-    if (text) {
-      currentParent.children.push({
-        text: text,
-        type: TEXT_TYPE
-      });
-    }
-  }
-
   function parseHTML(html) {
-    // 不停的去截取html字符串
+    var root = null; //ast 语法树的根
+
+    var currentParent; //识别当前父亲是谁
+
+    var stack = [];
+    var ELEMENT_TYPE = 1;
+    var TEXT_TYPE = 3;
+
+    function createASTElement(tagName, attrs) {
+      return {
+        tag: tagName,
+        type: ELEMENT_TYPE,
+        children: [],
+        attrs: attrs,
+        parent: null
+      };
+    } // 开始标签
+
+
+    function start(tagName, attrs) {
+      var element = createASTElement(tagName, attrs);
+
+      if (!root) {
+        root = element;
+      } // 把当前元素标记成父ast
+
+
+      currentParent = element;
+      stack.push(element); //把标签存放在栈里
+    }
+
+    function end(tagName) {
+      var element = stack.pop(); //拿到的是ast对象
+      //我要表示当前这个p属于这个div 的儿子
+
+      currentParent = stack[stack.length - 1];
+
+      if (currentParent) {
+        element.parent = currentParent;
+        currentParent.children.push(element); //实现了一个树的父子关系
+      }
+    }
+
+    function chars(text) {
+      text = text.replace(/\s/g, ''); //去掉所有空字符串
+
+      if (text) {
+        currentParent.children.push({
+          text: text,
+          type: TEXT_TYPE
+        });
+      }
+    } // 不停的去截取html字符串
+
+
     while (html) {
       var textEnd = html.indexOf('<');
 
@@ -398,25 +498,7 @@
     return root;
   }
 
-  // argumens[0] = 匹配到的标签  arguments[1] 匹配到的标签名字
-
-  var defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g;
-  function compileToFunction(template) {
-    console.log(template); // 1 解析字符串将HTML 字符串 => ast  语法
-
-    var root = parseHTML(template); // 需要将ast 语法树生成最终的render函数  就是字符串拼接（模板引擎）
-
-    var code = generate(root); // 核心思路就是将模板转化成 下面这段字符串
-    //  <div id="app"><p>hello {{name}}</p> hello</div>
-    // 将ast树 再次转化成js的语法
-    //  _c("div",{id:app},_c("p",undefined,_v('hello' + _s(name) )),_v('hello')) 
-    // 所有的模板引擎实现 都需要new Function + with
-
-    var renderFn = new Function("with(this){ return ".concat(code, "}")); // return function render(){
-    // }
-
-    return renderFn;
-  } // generate[{name:'id',value:'app'},{}]  {id:app,a:1,b:2}
+  var defaultTagRE = /\{\{((?:.|\r?\n)+?)\}\}/g; // generate[{name:'id',value:'app'},{}]  {id:app,a:1,b:2}
 
   function generate(el) {
     var children = genChildren(el); //生成子模板 
@@ -518,6 +600,24 @@
   //     }]
   // }
 
+  // argumens[0] = 匹配到的标签  arguments[1] 匹配到的标签名字
+
+  function compileToFunction(template) {
+    // 1 解析字符串将HTML 字符串 => ast  语法
+    var root = parseHTML(template); // 需要将ast 语法树生成最终的render函数  就是字符串拼接（模板引擎）
+
+    var code = generate(root); // 核心思路就是将模板转化成 下面这段字符串
+    //  <div id="app"><p>hello {{name}}</p> hello</div>
+    // 将ast树 再次转化成js的语法
+    //  _c("div",{id:app},_c("p",undefined,_v('hello' + _s(name) )),_v('hello')) 
+    // 所有的模板引擎实现 都需要new Function + with
+
+    var renderFn = new Function("with(this){ return ".concat(code, "}")); // return function render(){
+    // }
+
+    return renderFn;
+  }
+
   // class Watcher {
   //   constructor(vm,exprOrFn,callback,options){
   //     this.vm = vm 
@@ -565,6 +665,7 @@
       var el = createElm(vnode);
       parentElm.insertBefore(el, oldElm.nextSibling);
       parentElm.removeChild(oldElm);
+      return el;
     } // 递归创建真实节点  替换掉老节点
 
   }
@@ -619,12 +720,13 @@
     };
   }
   function mountComponent(vm, el) {
-    vm.options;
+    vm.$options;
     vm.$el = el; // 真是的dom元素
     // Watcher 就是来渲染的
     // vm._render 通过解析render方法 渲染出虚拟dom _c_v_s 
     // vm._update 通过虚拟dom 创建真是的dom
-    // 渲染页面
+
+    callHook(vm, 'beforeMount'); // 渲染页面
 
     var updataComponent = function updataComponent() {
       //无论渲染还是更新都会执行此方法
@@ -634,6 +736,18 @@
 
 
     new Watcher(vm, updataComponent, function () {}, true); //true  表示是一个渲染过程 
+
+    callHook(vm, 'mounted');
+  }
+  function callHook(vm, hook) {
+    var handlers = vm.$options[hook]; // [fn,fn,fn]
+
+    if (handlers) {
+      // 找到对应的钩子依次执行
+      for (var i = 0; i < handlers.length; i++) {
+        handlers[i].call(vm);
+      }
+    }
   }
 
   // import { initState } from './state'
@@ -643,11 +757,15 @@
     Vue.prototype._init = function (options) {
       // 数据的劫持
       var vm = this; // vue中使用 this.$options 指代的就是用户传递的属性
+      // 将用户传递的 和 全局的进行一个合并 
 
-      vm.$options = options; // 初始化状态
+      vm.$options = mergeOptions(vm.constructor.options, options); // vm.$options = options;
+
+      callHook(vm, 'beforeCreate'); // 初始化状态
 
       initState(vm); // 分割代码
-      // 如果用户传入了el属性 需要将页面渲染出来
+
+      callHook(vm, 'created'); // 如果用户传入了el属性 需要将页面渲染出来
       // 如果用户传入了el 就要实现挂载流程
 
       if (vm.$options.el) {
@@ -670,8 +788,6 @@
 
         var render = compileToFunction(template);
         options.render = render; // 我们需要将template 转化成render方法 vue1.0 2.0虚拟dom 
-
-        console.log(render);
       } // 渲染当前的组件 挂载这个组件
 
 
@@ -732,8 +848,16 @@
       var render = vm.$options.render;
       var vnode = render.call(vm); //去实例上取值
 
-      console.log(vnode);
       return vnode;
+    };
+  }
+
+  function initGlobalAPI(Vue) {
+    // 整合所有相关Api 内容
+    Vue.options = {};
+
+    Vue.mixin = function (mixin) {
+      this.options = mergeOptions(this.options, mixin);
     };
   }
 
@@ -749,6 +873,7 @@
 
   renderMixin(Vue);
   lifecycleMixin(Vue);
+  initGlobalAPI(Vue); //初始化全局Api
 
   return Vue;
 
