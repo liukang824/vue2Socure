@@ -257,6 +257,51 @@
     };
   });
 
+  var id$1 = 0;
+
+  var Dep = /*#__PURE__*/function () {
+    function Dep() {
+      _classCallCheck(this, Dep);
+
+      this.id = id$1++;
+      this.subs = [];
+    }
+
+    _createClass(Dep, [{
+      key: "addSub",
+      value: function addSub(watcher) {
+        //观察者模式
+        this.subs.push(watcher);
+      }
+    }, {
+      key: "depend",
+      value: function depend() {
+        // 让这个watcher 记住我当前的dep 如果没有watcher没有存过dep  dep 肯定也不会存watcher
+        Dep.target.addDep(this);
+      }
+    }, {
+      key: "notify",
+      value: function notify() {
+        this.subs.forEach(function (watcher) {
+          return watcher.update();
+        }); //调用当前watcher 的uodate方法
+      }
+    }]);
+
+    return Dep;
+  }();
+
+  var stack = []; // 目前可以做到watcher 保存和移除功能
+
+  function pushTarget(watcher) {
+    Dep.target = watcher;
+    stack.push(watcher);
+  }
+  function popTarget() {
+    stack.pop();
+    Dep.target = stack[stack.length - 1];
+  }
+
   var Observer = /*#__PURE__*/function () {
     function Observer(value) {
       _classCallCheck(this, Observer);
@@ -300,11 +345,22 @@
   }();
 
   function defineReactive(data, key, value) {
-    observe(value);
+    var dep = new Dep(); //这个dep 给对象使用
+    // 这里这个value可能是数组 也可能是对象 ，返回的结果是observer的实例，当前这个value对应的observer
+
+    observe(value); // 数组的observer实例
+
     Object.defineProperty(data, key, {
       configurable: true,
       enumerable: true,
       get: function get() {
+        //  获取值的时候做一些操作 
+        // 每个属性都对应着自己的watcher
+        if (Dep.target) {
+          //如果当前有watcher 
+          dep.depend(); //意味着我要将watcher 存起来 
+        }
+
         return value;
       },
       set: function set(newValue) {
@@ -312,6 +368,7 @@
 
         observe(value);
         value = newValue;
+        dep.notify(); //通知依赖收集watcher 进行更新操作
       }
     });
   }
@@ -618,19 +675,8 @@
     return renderFn;
   }
 
-  // class Watcher {
-  //   constructor(vm,exprOrFn,callback,options){
-  //     this.vm = vm 
-  //     this.callback = callback  
-  //     this.options = options 
-  //     this.getter = exprOrFn
-  //     this.get()
-  //   }
-  //   get(){
-  //     this.getter()
-  //   }
-  // }
-  // export default Watcher
+  var id = 0;
+
   var Watcher = /*#__PURE__*/function () {
     function Watcher(vm, exprOrFn, callback, options) {
       _classCallCheck(this, Watcher);
@@ -638,15 +684,42 @@
       this.vm = vm;
       this.callback = callback;
       this.options = options;
+      this.id = id++;
       this.getter = exprOrFn; // 将内部传过来的回调函数 放到getter属性上
 
+      this.depsId = new Set(); // es6中的集合 （不能放重复项）
+
+      this.deps = [];
       this.get();
     }
 
     _createClass(Watcher, [{
+      key: "addDep",
+      value: function addDep(dep) {
+        // watcher 里不能放重复的dep  dep里不能放重复的watcher
+        var id = this.id;
+
+        if (!this.depsId.has(id)) {
+          this.depsId.add(id);
+          this.deps.push(id);
+          dep.addSub(this); //存当前watcher
+        }
+      }
+    }, {
       key: "get",
       value: function get() {
+        pushTarget(this); // 把当前实例传进进去  存当前watcher
+
         this.getter();
+        popTarget(); //移除watcher
+      }
+    }, {
+      key: "update",
+      value: function update() {}
+    }, {
+      key: "run",
+      value: function run() {
+        this.get();
       }
     }]);
 

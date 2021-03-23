@@ -1,5 +1,6 @@
 import {isObject,def} from '../util/index'
 import {arrayMethods} from './array'
+import Dep from './dep.js';
 class Observer{
   constructor(value){
    // vue 如果数据的层次过多 需要递归的去解析对象中的属性 一次的get和set
@@ -30,11 +31,18 @@ class Observer{
   }
 }
 function defineReactive(data,key,value){
-  observe(value)
+  let dep = new Dep  //这个dep 给对象使用
+      // 这里这个value可能是数组 也可能是对象 ，返回的结果是observer的实例，当前这个value对应的observer
+   observe(value) // 数组的observer实例
     Object.defineProperty(data,key,{
       configurable:true,
       enumerable:true,
-      get(){
+      get(){ //  获取值的时候做一些操作 
+         // 每个属性都对应着自己的watcher
+         if(Dep.target){  //如果当前有watcher 
+            dep.depend()  //意味着我要将watcher 存起来 
+
+         }
         return value
       },
       set(newValue){
@@ -42,6 +50,8 @@ function defineReactive(data,key,value){
         //  监控的值是一个对象的话 再次监控observe(value)
             observe(value)
             value = newValue
+
+          dep.notify()  //通知依赖收集watcher 进行更新操作
         }
     })
 }
