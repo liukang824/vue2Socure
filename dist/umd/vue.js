@@ -715,7 +715,9 @@
       }
     }, {
       key: "update",
-      value: function update() {}
+      value: function update() {
+        this.get();
+      }
     }, {
       key: "run",
       value: function run() {

@@ -3,6 +3,7 @@ import {arrayMethods} from './array'
 import Dep from './dep.js';
 class Observer{
   constructor(value){
+    let dep = new Dep // 给数组用的
    // vue 如果数据的层次过多 需要递归的去解析对象中的属性 一次的get和set
     // value.__ob__ = this   //给每一个监控过的对象新增加一个__ob__ 属性
     def(value,'__ob__',this)
@@ -33,7 +34,7 @@ class Observer{
 function defineReactive(data,key,value){
   let dep = new Dep  //这个dep 给对象使用
       // 这里这个value可能是数组 也可能是对象 ，返回的结果是observer的实例，当前这个value对应的observer
-   observe(value) // 数组的observer实例
+   let childOb = observe(value) // 数组的observer实例
     Object.defineProperty(data,key,{
       configurable:true,
       enumerable:true,
@@ -41,7 +42,13 @@ function defineReactive(data,key,value){
          // 每个属性都对应着自己的watcher
          if(Dep.target){  //如果当前有watcher 
             dep.depend()  //意味着我要将watcher 存起来 
-
+          if(childOb){ // *******数组的依赖收集*****
+            childOb.dep.depend()  // 收集了数组的相关依赖 
+            // 如果数组中还有数组 
+            if(Array.isArray(value)){
+                dependArray(value)
+            }
+          }
          }
         return value
       },
@@ -54,6 +61,16 @@ function defineReactive(data,key,value){
           dep.notify()  //通知依赖收集watcher 进行更新操作
         }
     })
+}
+function dependArray(value){
+  for(let i =0; i<value.length; i++){
+    let current = value[i]  //将数组的每一项取出来数据变化后也去视图更新
+    current.__ob__&& current.__ob__.dep.depend()
+    if(Array.isArray(current)){
+      dependArray(current)
+    }
+
+  }
 }
 export function observe(data){
   // 判断是不是object 

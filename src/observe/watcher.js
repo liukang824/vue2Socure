@@ -30,7 +30,7 @@ class Watcher{
 
     }
     update(){
-
+      this.get();
     }
     run(){
       this.get();
