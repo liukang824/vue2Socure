@@ -253,6 +253,8 @@
 
       if (inserted) ob.observerArray(inserted); //新增的属性继续观测
 
+      ob.dep.notify(); // 如果用户调用了 push方法 我会通知当前这个dep去更新
+
       return result;
     };
   });
@@ -294,6 +296,7 @@
   var stack = []; // 目前可以做到watcher 保存和移除功能
 
   function pushTarget(watcher) {
+    // console.log(watcher,2222);
     Dep.target = watcher;
     stack.push(watcher);
   }
@@ -306,8 +309,10 @@
     function Observer(value) {
       _classCallCheck(this, Observer);
 
+      this.dep = new Dep(); // 给数组用的
       // vue 如果数据的层次过多 需要递归的去解析对象中的属性 一次的get和set
       // value.__ob__ = this   //给每一个监控过的对象新增加一个__ob__ 属性
+
       def(value, '__ob__', this);
 
       if (Array.isArray(value)) {
@@ -348,7 +353,7 @@
     var dep = new Dep(); //这个dep 给对象使用
     // 这里这个value可能是数组 也可能是对象 ，返回的结果是observer的实例，当前这个value对应的observer
 
-    observe(value); // 数组的observer实例
+    var childOb = observe(value); // 数组的observer实例
 
     Object.defineProperty(data, key, {
       configurable: true,
@@ -359,6 +364,16 @@
         if (Dep.target) {
           //如果当前有watcher 
           dep.depend(); //意味着我要将watcher 存起来 
+
+          if (childOb) {
+            // *******数组的依赖收集*****
+            childOb.dep.depend(); // 收集了数组的相关依赖 
+            // 如果数组中还有数组 
+
+            if (Array.isArray(value)) {
+              dependArray(value);
+            }
+          }
         }
 
         return value;
@@ -371,6 +386,18 @@
         dep.notify(); //通知依赖收集watcher 进行更新操作
       }
     });
+  }
+
+  function dependArray(value) {
+    for (var i = 0; i < value.length; i++) {
+      var current = value[i]; //将数组的每一项取出来数据变化后也去视图更新
+
+      current.__ob__ && current.__ob__.dep.depend();
+
+      if (Array.isArray(current)) {
+        dependArray(current);
+      }
+    }
   }
 
   function observe(data) {
@@ -675,6 +702,56 @@
     return renderFn;
   }
 
+  var callbacks = []; // 回调数组 
+
+  var waiting = false;
+
+  function flushCallbfaack() {
+    callbacks.forEach(function (cb) {
+      return cb();
+    });
+    callbacks = []; //清空
+
+    waiting = false;
+  }
+
+  function nextTick(cb) {
+    //异步更新原理
+    // 多次调用nextTick 如果没有刷新的时候 就先把他放到数组中,
+    // 刷新后 更改waiting
+    callbacks.push(cb);
+
+    if (waiting === false) {
+      setTimeout(flushCallbfaack, 0);
+      waiting = true;
+    }
+  }
+
+  var queue = []; //存储队列
+
+  var has = {};
+
+  function flushSchedularQueue() {
+    queue.forEach(function (watcher) {
+      return watcher.run();
+    });
+    queue = []; //存储队列
+
+    has = {};
+  }
+
+  function queueWatcher(watcher) {
+    var id = watcher.id;
+
+    if (has[id] == null) {
+      queue.push(watcher);
+      has[id] = true; // 宏任务和微任务 （vue里面使用Vue.nextTick）
+      // Vue.nextTick = promise / mutationObserver / setImmediate/ setTimeout
+
+      nextTick(flushSchedularQueue);
+    }
+  }
+
   var id = 0;
 
   var Watcher = /*#__PURE__*/function () {
@@ -690,25 +767,26 @@
       this.depsId = new Set(); // es6中的集合 （不能放重复项）
 
       this.deps = [];
-      this.get();
+      this.get(); // 调用get方法 会让渲染watcher执行
     }
 
     _createClass(Watcher, [{
       key: "addDep",
       value: function addDep(dep) {
         // watcher 里不能放重复的dep  dep里不能放重复的watcher
-        var id = this.id;
+        // console.log(dep);
+        var id = dep.id;
 
         if (!this.depsId.has(id)) {
           this.depsId.add(id);
-          this.deps.push(id);
-          dep.addSub(this); //存当前watcher
+          this.deps.push(dep);
+          dep.addSub(this);
         }
       }
     }, {
       key: "get",
       value: function get() {
-        pushTarget(this); // 把当前实例传进进去  存当前watcher
+        pushTarget(this); // 把当前实例传进进去  存当前watcher 
 
         this.getter();
         popTarget(); //移除watcher
@@ -716,7 +794,9 @@
     }, {
       key: "update",
       value: function update() {
-        this.get();
+        queueWatcher(this); //等待这一起更新 每次调用update 的时候都放入watcher
+        // console.log('更新了');
+        // this.get();
       }
     }, {
       key: "run",
@@ -868,6 +948,8 @@
 
       mountComponent(vm, el);
     };
+
+    Vue.prototype.$nextTick = nextTick; // 注册了nextTick
   }
 
   function createElement(tag) {

@@ -32,6 +32,7 @@ const methods=[
           break;
       }
       if(inserted) ob.observerArray(inserted) ;  //新增的属性继续观测
+      ob.dep.notify(); // 如果用户调用了 push方法 我会通知当前这个dep去更新
       return result;
     }
   });

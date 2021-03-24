@@ -21,6 +21,7 @@ let stack =[]
 
 // 目前可以做到watcher 保存和移除功能
 export function pushTarget(watcher){
+  // console.log(watcher,2222);
   Dep.target = watcher
   stack.push(watcher)
 }

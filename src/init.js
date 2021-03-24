@@ -48,6 +48,7 @@ import {compileToFunction} from './compiler/index.js'
 
 import {mountComponent,callHook} from './lifecycle'
 import {mergeOptions} from './util/index';
+import {nextTick} from './util/next-tick'
 // 在原型上添加一个init方法
 export function initMixin(Vue){
     // 初始化流程
@@ -87,4 +88,5 @@ export function initMixin(Vue){
         // 渲染当前的组件 挂载这个组件
         mountComponent(vm,el);
     }
+    Vue.prototype.$nextTick = nextTick; // 注册了nextTick
 }

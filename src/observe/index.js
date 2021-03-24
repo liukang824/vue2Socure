@@ -3,7 +3,7 @@ import {arrayMethods} from './array'
 import Dep from './dep.js';
 class Observer{
   constructor(value){
-    let dep = new Dep // 给数组用的
+     this.dep = new Dep // 给数组用的
    // vue 如果数据的层次过多 需要递归的去解析对象中的属性 一次的get和set
     // value.__ob__ = this   //给每一个监控过的对象新增加一个__ob__ 属性
     def(value,'__ob__',this)
@@ -32,7 +32,7 @@ class Observer{
   }
 }
 function defineReactive(data,key,value){
-  let dep = new Dep  //这个dep 给对象使用
+  let dep = new Dep()  //这个dep 给对象使用
       // 这里这个value可能是数组 也可能是对象 ，返回的结果是observer的实例，当前这个value对应的observer
    let childOb = observe(value) // 数组的observer实例
     Object.defineProperty(data,key,{
@@ -42,6 +42,7 @@ function defineReactive(data,key,value){
          // 每个属性都对应着自己的watcher
          if(Dep.target){  //如果当前有watcher 
             dep.depend()  //意味着我要将watcher 存起来 
+
           if(childOb){ // *******数组的依赖收集*****
             childOb.dep.depend()  // 收集了数组的相关依赖 
             // 如果数组中还有数组 
@@ -57,7 +58,6 @@ function defineReactive(data,key,value){
         //  监控的值是一个对象的话 再次监控observe(value)
             observe(value)
             value = newValue
-
           dep.notify()  //通知依赖收集watcher 进行更新操作
         }
     })
